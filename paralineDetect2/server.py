@@ -161,17 +161,6 @@ def video_feed():
 
 @app.route("/video_feed_processed")
 
- """
-    Flask route for processed camera video feed with lane detection.
-    Streams camera frames with blue lane detection overlays as MJPEG over HTTP.
-    
-    Parameters:
-        None
-    
-    Returns:
-        flask.Response: HTTP response with processed MJPEG video stream
-                       Content-Type: multipart/x-mixed-replace
-"""
 def video_feed_processed():
     return Response(mjpeg_stream(detect_blue_lanes), mimetype=f"multipart/x-mixed-replace; boundary={BOUNDARY}")
 
