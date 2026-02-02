@@ -1,5 +1,4 @@
-#"Curved Lines Detection" - Aaditya Mitra P2, V1.9.1
-# Importing response to recieve a response , convert to raw pixels, then .imencode() to convert to JPEG frames using Numpy
+#Version 1.9.1
 import cv2, numpy as np
 from flask import Flask, Response
 from flask_cors import CORS
