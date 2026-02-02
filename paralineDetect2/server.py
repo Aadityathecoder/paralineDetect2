@@ -1,5 +1,5 @@
-# VER. 1.7
-
+# Version 1.9
+# Importing response to recieve a response , convert to raw pixels, then .imencode() to convert to JPEG frames using Numpy
 import cv2, numpy as np
 from flask import Flask, Response
 from flask_cors import CORS
@@ -14,17 +14,6 @@ HSV_LOW, HSV_HIGH = np.array([85, 80, 80]), np.array([115, 255, 255])
 KERNEL = np.ones((5, 5), np.uint8)
 BOUNDARY = "frame"
 
-
-"""
-    Attempt to open a working camera from the given device indices. Tries each camera index in order until finding one that opens successfully
-    and can capture valid frames.
-    
-    Parameters:
-        indices (tuple): Tuple of camera device indices to try (default: (0, 1, 2))
-                        Index 0 is usually the default/built-in camera
-    Returns:
-        cv2.VideoCapture: Opened and configured camera object ready for frame capture
-"""
 def open_camera(indices=(0, 1, 2)):
     for idx in indices:
         cam = cv2.VideoCapture(idx)
@@ -39,19 +28,6 @@ def open_camera(indices=(0, 1, 2)):
 
 camera = open_camera()
 
-"""
-    Detect blue painter's tape lanes in a camera frame and overlay lane markings.
-    Uses HSV color filtering, morphological operations, and polynomial curve fitting
-    to identify and visualize left/right lanes and center path.
-    
-    Parameters:
-        frame (numpy.ndarray): BGR image from camera (shape: [height, width, 3])
-    
-    Returns:
-        numpy.ndarray: Processed frame with lane overlays:
-                      - Green highlight on detected blue regions
-                      - Blue curve for left lane boundary
-"""
 def detect_blue_lanes(frame):
     h, w = frame.shape[:2]
     roi_top = int(h * ROI_TOP_FRAC)
@@ -106,16 +82,6 @@ def detect_blue_lanes(frame):
     center_x = ((left_x + right_x) / 2).astype(int)
     y_img = (y + roi_top).astype(int)
 
- """
-    Draw a smooth curve on the frame.
-        
-    Parameters:
-        x_vals (numpy.ndarray): X-coordinates of curve points
-        color (tuple): BGR color tuple for the curve
-        
-    Returns:
-        None (modifies frame in place)
-"""
     def draw_curve(x_vals, color):
         pts = np.stack([x_vals, y_img], axis=1).reshape(-1, 1, 2).astype(np.int32)
         cv2.polylines(frame, [pts], False, color, 3)
@@ -129,19 +95,7 @@ def detect_blue_lanes(frame):
     cv2.putText(frame, f"offset: {bottom_center - mid_x}px", (10, 30),
                 cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 255), 2)
     return frame
- 
-"""
-    Generate MJPEG video stream from camera frames.
-    Continuously captures frames and yields them in MJPEG format for HTTP streaming.
-    
-    Parameters:
-        processor (callable): Function to process each frame before encoding.
-                                       Should accept and return a numpy array frame.
-                                       If None, streams raw camera frames.
-    
-    Returns:
-        generator: Yields MJPEG-formatted frame data as bytes.
-    """
+
 def mjpeg_stream(processor=None):
     while True:
         ok, frame = camera.read()
@@ -160,22 +114,10 @@ def video_feed():
     return Response(mjpeg_stream(), mimetype=f"multipart/x-mixed-replace; boundary={BOUNDARY}")
 
 @app.route("/video_feed_processed")
-
 def video_feed_processed():
     return Response(mjpeg_stream(detect_blue_lanes), mimetype=f"multipart/x-mixed-replace; boundary={BOUNDARY}")
 
 @app.route("/")
-
-"""
-    Flask route for home page with links to video streams.
-    Provides simple HTML page with links to both raw and processed video feeds.
-    
-    Parameters:
-        None
-    
-    Returns:
-        str: HTML string with page title and stream links
-"""
 def home():
     return ('<h1>Camera Server</h1>'
             '<p>Raw: <a href="/video_feed">/video_feed</a></p>'
